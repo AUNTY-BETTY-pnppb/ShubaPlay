@@ -4,6 +4,7 @@ from PIL import Image, ImageTk
 import pygame 
 import glob 
 import time 
+from mutagen.mp3 import MP3
 import os
 
 class Main:
@@ -11,14 +12,16 @@ class Main:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("ShubaPlay")
-        self._tab_bar = tk.ttk.Notebook(self.root)
+        self.style = ttk.Style(self.root)
+        self.style.configure('lefttab.TNotebook', tabposition='wn')
+        self._tab_bar = tk.ttk.Notebook(self.root, style='lefttab.TNotebook')
         self.playlist = Playlist(self._tab_bar)
         self.shubaplay = ShubaPlay(self._tab_bar)
         self.tabControl()
 
     def tabControl(self):
         self._tab_bar.add(self.shubaplay.frame, text='ShubaPlay')
-        self._tab_bar.add(self.playlist.frame, text='Playlist')
+        self._tab_bar.add(self.playlist.frame, text='ShubaList')
         self._tab_bar.grid(column=0, row=0)
 
 class musicADT:
@@ -101,10 +104,9 @@ class ShubaPlay:
     def __init__(self, parent):
         self._parent = parent
         self.frame = tk.Frame(self._parent)
-        self.style = ttk.Style(self._parent)
         self._prog_var = tk.IntVar()
         self._canvas = tk.Canvas(self.frame, bg="white", height=250, width=300)
-        self._label = tk.Label(self.frame, text="")
+        self._label = tk.Label(self.frame, width=60, text="- - -")
         self._prevlist = tk.Listbox(self.frame, height=5, width=30)
         self._tracklist = tk.Listbox(self.frame, height=20, width=30)
         self._prevlist.insert(0, "Previous")
@@ -112,16 +114,18 @@ class ShubaPlay:
         self._playbtn = tk.Button(self.frame, text='Play', padx=15, pady=15, command=self.play)
         self._prevbtn = tk.Button(self.frame, text='Prev', padx=15, pady=15, command=self.prev)
         self._nextbtn = tk.Button(self.frame, text='Next', padx=15, pady=15, command=self.next)
+        self._statbar = tk.Label(self.frame, width=60, text="hey what do you mean?")
         self.pos_widgets()
 
     def pos_widgets(self):
         self._canvas.grid(row=0, column=1, columnspan=7, rowspan=2)
         self._label.grid(row=2, column=1, columnspan=7)
         self._prevlist.grid(row=0, column=8)
-        self._tracklist.grid(row=1, column=8, rowspan=3)
+        self._tracklist.grid(row=1, column=8, rowspan=4)
         self._prevbtn.grid(row=3, column=3, sticky="n")
         self._playbtn.grid(row=3, column=4, sticky="n")
         self._nextbtn.grid(row=3, column=5, sticky="n")
+        self._statbar.grid(row=4, column=1, columnspan=7, sticky="s")
 
     def insert_list(self, bef, aft):
         b = 1

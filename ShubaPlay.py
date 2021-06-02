@@ -83,10 +83,13 @@ class musicADT:
 
     def rewind(self):
         pygame.mixer.music.rewind()
+    
+    def get_current(self):
+        return self._files[self._current]
 
     def printList(self):
         for file in self._files:
-            if file == self._files[self._current]:
+            if file == self.get_current():
                 print("-" + os.path.basename(self._files[file])[:-4])
             else:
                 print(os.path.basename(self._files[file])[:-4])
@@ -114,7 +117,7 @@ class ShubaPlay:
         self._playbtn = tk.Button(self.frame, text='Play', padx=15, pady=15, command=self.play)
         self._prevbtn = tk.Button(self.frame, text='Prev', padx=15, pady=15, command=self.prev)
         self._nextbtn = tk.Button(self.frame, text='Next', padx=15, pady=15, command=self.next)
-        self._statbar = tk.Label(self.frame, width=60, text="hey what do you mean?")
+        self._statbar = tk.Label(self.frame, width=60, text="-- / --")
         self.pos_widgets()
 
     def pos_widgets(self):
@@ -125,7 +128,7 @@ class ShubaPlay:
         self._prevbtn.grid(row=3, column=3, sticky="n")
         self._playbtn.grid(row=3, column=4, sticky="n")
         self._nextbtn.grid(row=3, column=5, sticky="n")
-        self._statbar.grid(row=4, column=1, columnspan=7, sticky="s")
+        self._statbar.grid(row=4, column=1, columnspan=7, sticky="n")
 
     def insert_list(self, bef, aft):
         b = 1
@@ -150,13 +153,36 @@ class ShubaPlay:
     def play(self):
         if not music.check() and music.start == False:
             l = music.play()
+            self.play_time()
             self.reset_box()
             bef, aft = music.list_all()
             self.insert_list(bef, aft)
             self._label['text'] = l
             music.start = True
         else:
-            music.pause()    
+            music.pause()  
+
+    def play_time(self):
+        # grab elapsed time
+        current_time = pygame.mixer.music.get_pos() / 1000 
+
+        # convert to time
+        convert_time = time.strftime('%M:%S', time.gmtime(current_time))
+
+        # get song length
+        song = music._files[music._current]
+
+        # load song in mutagen
+        song_muta = MP3(song)
+
+        # song length
+        song_len = song_muta.info.length
+
+        # convert to song length
+        convert_len = time.strftime('%M:%S', time.gmtime(song_len))
+
+        self._statbar.config(text=f'{convert_time} / {convert_len}')
+        self._statbar.after(1000, self.play_time)  
 
     def prev(self):
         if music.re == 0 and music.check():

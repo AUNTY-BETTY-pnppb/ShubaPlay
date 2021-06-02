@@ -117,6 +117,7 @@ class ShubaPlay:
         self._playbtn = tk.Button(self.frame, text='Play', padx=15, pady=15, command=self.play)
         self._prevbtn = tk.Button(self.frame, text='Prev', padx=15, pady=15, command=self.prev)
         self._nextbtn = tk.Button(self.frame, text='Next', padx=15, pady=15, command=self.next)
+        self._buffer = ttk.Scale(self.frame, from_=0, orient="horizontal", length=300, cursor="sb_h_double_arrow", value=0, command=self.buff)
         self._statbar = tk.Label(self.frame, width=60, text="-- / --")
         self.pos_widgets()
 
@@ -124,11 +125,12 @@ class ShubaPlay:
         self._canvas.grid(row=0, column=1, columnspan=7, rowspan=2)
         self._label.grid(row=2, column=1, columnspan=7)
         self._prevlist.grid(row=0, column=8)
-        self._tracklist.grid(row=1, column=8, rowspan=4)
+        self._tracklist.grid(row=1, column=8, rowspan=5)
         self._prevbtn.grid(row=3, column=3, sticky="n")
         self._playbtn.grid(row=3, column=4, sticky="n")
         self._nextbtn.grid(row=3, column=5, sticky="n")
-        self._statbar.grid(row=4, column=1, columnspan=7, sticky="n")
+        self._buffer.grid(row=4, column=2, columnspan=5)
+        self._statbar.grid(row=5, column=1, columnspan=7, sticky="n")
 
     def insert_list(self, bef, aft):
         b = 1
@@ -145,6 +147,9 @@ class ShubaPlay:
             for song in aft:
                 self._tracklist.insert(a, song)
                 a+=1
+
+    def buff(self, val):
+        pass
     
     def reset_box(self):
         self._prevlist.delete(1,'end')
@@ -153,10 +158,15 @@ class ShubaPlay:
     def play(self):
         if not music.check() and music.start == False:
             l = music.play()
+
             self.play_time()
+            buffer_pos = int(song_len)
+            self._buffer.config(to=buffer_pos, value=0)
+
             self.reset_box()
             bef, aft = music.list_all()
             self.insert_list(bef, aft)
+
             self._label['text'] = l
             music.start = True
         else:
@@ -176,12 +186,15 @@ class ShubaPlay:
         song_muta = MP3(song)
 
         # song length
+        global song_len
         song_len = song_muta.info.length
 
         # convert to song length
         convert_len = time.strftime('%M:%S', time.gmtime(song_len))
 
         self._statbar.config(text=f'{convert_time} / {convert_len}')
+        self._buffer.config(value=int(current_time))
+
         self._statbar.after(1000, self.play_time)  
 
     def prev(self):

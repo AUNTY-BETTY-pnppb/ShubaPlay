@@ -44,10 +44,8 @@ class musicADT:
     def play(self):
         if self.check():
             pygame.mixer.music.stop()
-        pygame.mixer.music.load(self._files[self._current])
-        pygame.mixer.music.play()
         print("Playing - " + os.path.basename(self._files[self._current])[:-4])
-        return os.path.basename(self._files[self._current])[:-4]
+        return os.path.basename(self._files[self._current])
 
     def pause(self):
         if not self.checkpause:
@@ -117,7 +115,8 @@ class ShubaPlay:
         self._playbtn = tk.Button(self.frame, text='Play', padx=15, pady=15, command=self.play)
         self._prevbtn = tk.Button(self.frame, text='Prev', padx=15, pady=15, command=self.prev)
         self._nextbtn = tk.Button(self.frame, text='Next', padx=15, pady=15, command=self.next)
-        self._buffer = ttk.Scale(self.frame, from_=0, orient="horizontal", length=300, cursor="sb_h_double_arrow", value=0, command=self.buff)
+        self._buffer = ttk.Scale(self.frame, from_=0, orient="horizontal", length=300, cursor="sb_h_double_arrow", value=0)
+        self._buffer.bind("<ButtonRelease-1>", self.buff)
         self._statbar = tk.Label(self.frame, width=60, text="-- / --")
         self.pos_widgets()
 
@@ -149,19 +148,23 @@ class ShubaPlay:
                 a+=1
 
     def buff(self, val):
-        pass
+        l = music.play()
+        pygame.mixer.music.load(l)
+        pygame.mixer.music.play(loops=0, start=int(self._buffer.get()))
     
     def reset_box(self):
         self._prevlist.delete(1,'end')
         self._tracklist.delete(1, 'end')
 
+    def load_play(self, l):
+        pygame.mixer.music.load(l)
+        pygame.mixer.music.play()
+
     def play(self):
         if not music.check() and music.start == False:
             l = music.play()
-
+            self.load_play(l)
             self.play_time()
-            buffer_pos = int(song_len)
-            self._buffer.config(to=buffer_pos, value=0)
 
             self.reset_box()
             bef, aft = music.list_all()
@@ -192,17 +195,38 @@ class ShubaPlay:
         # convert to song length
         convert_len = time.strftime('%M:%S', time.gmtime(song_len))
 
-        self._statbar.config(text=f'{convert_time} / {convert_len}')
-        self._buffer.config(value=int(current_time))
+        current_time += 1
+
+        if int(self._buffer.get()) == int(song_len):
+            self._statbar.config(text=f'{convert_len} / {convert_len}')
+
+        elif int(self._buffer.get()) == int(current_time):
+            buffer_pos = int(song_len)
+            self._buffer.config(to=buffer_pos, value=int(current_time))
+
+        else:
+            buffer_pos = int(song_len)
+            self._buffer.config(to=buffer_pos, value=int(self._buffer.get()))
+
+            convert_time = time.strftime('%M:%S', time.gmtime(int(self._buffer.get())))
+
+            self._statbar.config(text=f'{convert_time} / {convert_len}')
+
+            next_time = int(self._buffer.get()) + 1
+            self._buffer.config(value=next_time)
 
         self._statbar.after(1000, self.play_time)  
 
     def prev(self):
         if music.re == 0 and music.check():
+            self._buffer.config(value=0)
             music.rewind()
             music.re = 1
         else:
+            self._buffer.config(value=0)
             l = music.prev_track()
+            self.load_play(l)
+
             self.reset_box()
             bef, aft = music.list_all()
             self.insert_list(bef, aft)
@@ -210,7 +234,10 @@ class ShubaPlay:
             music.re = 0
 
     def next(self):
+        self._buffer.config(value=0)
         l = music.next_track()
+        self.load_play(l)
+        
         self.reset_box()
         bef, aft = music.list_all()
         self.insert_list(bef, aft)

@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import PhotoImage, ttk
 from PIL import Image, ImageTk
 import pygame 
 import glob 
@@ -105,16 +105,32 @@ class ShubaPlay:
     def __init__(self, parent):
         self._parent = parent
         self.frame = tk.Frame(self._parent)
-        self._prog_var = tk.IntVar()
+
         self._canvas = tk.Canvas(self.frame, bg="white", height=250, width=300)
+
         self._label = tk.Label(self.frame, width=60, text="- - -")
+
         self._prevlist = tk.Listbox(self.frame, height=5, width=30)
         self._tracklist = tk.Listbox(self.frame, height=20, width=30)
         self._prevlist.insert(0, "Previous")
         self._tracklist.insert(0, "Next")
-        self._playbtn = tk.Button(self.frame, text='Play', padx=15, pady=15, command=self.play)
-        self._prevbtn = tk.Button(self.frame, text='Prev', padx=15, pady=15, command=self.prev)
-        self._nextbtn = tk.Button(self.frame, text='Next', padx=15, pady=15, command=self.next)
+
+        self._playimg = Image.open('img/playbtn.jpg')
+        self._play1 = self._playimg.resize((50,50),Image.ANTIALIAS) 
+        self._play2 = ImageTk.PhotoImage(self._play1)
+
+        self._previmg = Image.open('img/prevbtn.jpg')
+        self._prev1 = self._previmg.resize((50,50),Image.ANTIALIAS) 
+        self._prev2 = ImageTk.PhotoImage(self._prev1)
+
+        self._nextimg = Image.open('img/nextbtn.jpg')
+        self._next1 = self._nextimg.resize((50,50),Image.ANTIALIAS) 
+        self._next2 = ImageTk.PhotoImage(self._next1)
+
+        self._playbtn = tk.Button(self.frame, image=self._play2, padx=15, pady=15, command=self.play, borderwidth=0)
+        self._prevbtn = tk.Button(self.frame, image=self._prev2, padx=15, pady=15, command=self.prev, borderwidth=0)
+        self._nextbtn = tk.Button(self.frame, image=self._next2, padx=15, pady=15, command=self.next, borderwidth=0)
+
         self._buffer = ttk.Scale(self.frame, from_=0, orient="horizontal", length=300, cursor="sb_h_double_arrow", value=0)
         self._buffer.bind("<ButtonRelease-1>", self.buff)
         self._statbar = tk.Label(self.frame, width=60, text="-- / --")
@@ -199,6 +215,7 @@ class ShubaPlay:
 
         if int(self._buffer.get()) == int(song_len):
             self._statbar.config(text=f'{convert_len} / {convert_len}')
+            self._statbar.after(1000, self.next) 
 
         elif int(self._buffer.get()) == int(current_time):
             buffer_pos = int(song_len)

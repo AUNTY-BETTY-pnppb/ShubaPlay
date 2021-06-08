@@ -21,7 +21,7 @@ class Main:
 
     def tabControl(self):
         self._tab_bar.add(self.shubaplay.frame, text='ShubaPlay')
-        self._tab_bar.add(self.playlist.frame, text='ShubaList')
+        self._tab_bar.add(self.playlist.frame, text='PlayList')
         self._tab_bar.grid(column=0, row=0)
 
 class musicADT:
@@ -85,12 +85,15 @@ class musicADT:
     def get_current(self):
         return self._files[self._current]
 
+    def current_index(self):
+        return self._current
+
+    def change_current(self, curr):
+        self._current = curr
+
     def printList(self):
         for file in self._files:
-            if file == self.get_current():
-                print("-" + os.path.basename(self._files[file])[:-4])
-            else:
-                print(os.path.basename(self._files[file])[:-4])
+            print(os.path.basename(file)[:-4])
 
     def list_all(self):
         bef, aft = self._files[:self._current], self._files[self._current+1:] 
@@ -99,6 +102,15 @@ class musicADT:
         for a in aft:
             aft[aft.index(a)] = os.path.basename(a)[:-4]
         return bef, aft
+
+    def len_list(self):
+        return len(self._files)
+
+    def get_list(self):
+        lis = []
+        for file in self._files:
+            lis.append(os.path.basename(file)[:-4])
+        return lis
 
 class ShubaPlay:
 
@@ -114,10 +126,17 @@ class ShubaPlay:
         self._tracklist = tk.Listbox(self.frame, height=20, width=30)
         self._prevlist.insert(0, "Previous")
         self._tracklist.insert(0, "Next")
+        self._prevlist.bind("<<ListboxSelect>>", self.click_song)
+        self._tracklist.bind("<<ListboxSelect>>", self.click_song)
+
 
         self._playimg = Image.open('img/playbtn.jpg')
         self._play1 = self._playimg.resize((50,50),Image.ANTIALIAS) 
         self._play2 = ImageTk.PhotoImage(self._play1)
+
+        self._pauseimg = Image.open('img/pausebtn.jpg')
+        self._pause1 = self._pauseimg.resize((50,50),Image.ANTIALIAS) 
+        self._pause2 = ImageTk.PhotoImage(self._pause1)
 
         self._previmg = Image.open('img/prevbtn.jpg')
         self._prev1 = self._previmg.resize((50,50),Image.ANTIALIAS) 
@@ -163,7 +182,28 @@ class ShubaPlay:
                 self._tracklist.insert(a, song)
                 a+=1
 
-    def buff(self, val):
+    def click_song(self, event):
+        w = event.widget
+        index = int(w.curselection()[0])
+        value = w.get(index)
+        songs = music.get_list()
+        ind = songs.index(value)
+        music.change_current(ind)
+
+        self._buffer.config(value=0)
+        l = music.play()
+        self.load_play(l)
+
+        self._playbtn.config(image=self._pause2)
+
+        self.reset_box()
+        bef, aft = music.list_all()
+        self.insert_list(bef, aft)
+
+        self._label['text'] = l
+        music.start = True
+
+    def buff(self):
         l = music.play()
         pygame.mixer.music.load(l)
         pygame.mixer.music.play(loops=0, start=int(self._buffer.get()))
@@ -182,6 +222,8 @@ class ShubaPlay:
             self.load_play(l)
             self.play_time()
 
+            self._playbtn.config(image=self._pause2)
+
             self.reset_box()
             bef, aft = music.list_all()
             self.insert_list(bef, aft)
@@ -190,6 +232,10 @@ class ShubaPlay:
             music.start = True
         else:
             music.pause()  
+            if music.checkpause:
+                self._playbtn.config(image=self._play2)
+            else: 
+                self._playbtn.config(image=self._pause2)
 
     def play_time(self):
         # grab elapsed time
@@ -244,6 +290,8 @@ class ShubaPlay:
             l = music.prev_track()
             self.load_play(l)
 
+            self._playbtn.config(image=self._pause2)
+
             self.reset_box()
             bef, aft = music.list_all()
             self.insert_list(bef, aft)
@@ -254,6 +302,8 @@ class ShubaPlay:
         self._buffer.config(value=0)
         l = music.next_track()
         self.load_play(l)
+
+        self._playbtn.config(image=self._pause2)
         
         self.reset_box()
         bef, aft = music.list_all()

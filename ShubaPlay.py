@@ -184,26 +184,19 @@ class ShubaPlay:
 
     def click_song(self, event):
         w = event.widget
-        index = int(w.curselection()[0])
-        value = w.get(index)
-        songs = music.get_list()
-        ind = songs.index(value)
-        music.change_current(ind)
 
-        self._buffer.config(value=0)
-        l = music.play()
-        self.load_play(l)
+        if w.curselection():
+            index = int(w.curselection()[0])
 
-        self._playbtn.config(image=self._pause2)
+            if index != 0:
+                value = w.get(index)
+                songs = music.get_list()
+                ind = songs.index(value)
+                music.change_current(ind)
 
-        self.reset_box()
-        bef, aft = music.list_all()
-        self.insert_list(bef, aft)
+                self.other_play(music.play())
 
-        self._label['text'] = l
-        music.start = True
-
-    def buff(self):
+    def buff(self, val):
         l = music.play()
         pygame.mixer.music.load(l)
         pygame.mixer.music.play(loops=0, start=int(self._buffer.get()))
@@ -215,6 +208,20 @@ class ShubaPlay:
     def load_play(self, l):
         pygame.mixer.music.load(l)
         pygame.mixer.music.play()
+
+    def other_play(self, play):
+        self._buffer.config(value=0)
+        l = play
+        self.load_play(l)
+
+        self._playbtn.config(image=self._pause2)
+
+        self.reset_box()
+        bef, aft = music.list_all()
+        self.insert_list(bef, aft)
+
+        self._label['text'] = l
+        music.start = True
 
     def play(self):
         if not music.check() and music.start == False:
@@ -286,29 +293,11 @@ class ShubaPlay:
             music.rewind()
             music.re = 1
         else:
-            self._buffer.config(value=0)
-            l = music.prev_track()
-            self.load_play(l)
-
-            self._playbtn.config(image=self._pause2)
-
-            self.reset_box()
-            bef, aft = music.list_all()
-            self.insert_list(bef, aft)
-            self._label['text'] = l
+            self.other_play(music.prev_track())
             music.re = 0
 
     def next(self):
-        self._buffer.config(value=0)
-        l = music.next_track()
-        self.load_play(l)
-
-        self._playbtn.config(image=self._pause2)
-        
-        self.reset_box()
-        bef, aft = music.list_all()
-        self.insert_list(bef, aft)
-        self._label['text'] = l
+        self.other_play(music.next_track())
 
 class Playlist:
 

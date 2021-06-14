@@ -115,10 +115,12 @@ class musicADT:
 class ShubaPlay:
 
     def __init__(self, parent):
+        # Create parent, frame
         self._parent = parent
         self.frame = tk.Frame(self._parent)
 
-        self._canvas = tk.Canvas(self.frame, bg="white", height=250, width=300)
+        # Create canvas, labels, listboxes
+        self._canvas = tk.Canvas(self.frame, bg="#FCFBF7", height=250, width=300)
 
         self._label = tk.Label(self.frame, width=60, text="- - -")
 
@@ -129,7 +131,17 @@ class ShubaPlay:
         self._prevlist.bind("<<ListboxSelect>>", self.click_song)
         self._tracklist.bind("<<ListboxSelect>>", self.click_song)
 
+        # Create images
+        # IMPORTANT ------------------------------------------------#
+        self._piclist = os.listdir("img/shubapics")
 
+        self._img = Image.open('img/shubapics/frame_00_delay-0.05s.jpg')
+        self._img1 = self._img.resize((230,250),Image.ANTIALIAS) 
+        self._img2 = ImageTk.PhotoImage(self._img1)
+        self._imgtoken = 1
+        
+        self._canvas.create_image(30, 0, anchor="nw", tags="shuba", image=self._img2)
+        # IMPORTANT ------------------------------------------------#
         self._playimg = Image.open('img/playbtn.jpg')
         self._play1 = self._playimg.resize((50,50),Image.ANTIALIAS) 
         self._play2 = ImageTk.PhotoImage(self._play1)
@@ -146,6 +158,7 @@ class ShubaPlay:
         self._next1 = self._nextimg.resize((50,50),Image.ANTIALIAS) 
         self._next2 = ImageTk.PhotoImage(self._next1)
 
+        # Create buttons and buffer bar
         self._playbtn = tk.Button(self.frame, image=self._play2, padx=15, pady=15, command=self.play, borderwidth=0)
         self._prevbtn = tk.Button(self.frame, image=self._prev2, padx=15, pady=15, command=self.prev, borderwidth=0)
         self._nextbtn = tk.Button(self.frame, image=self._next2, padx=15, pady=15, command=self.next, borderwidth=0)
@@ -156,6 +169,7 @@ class ShubaPlay:
         self.pos_widgets()
 
     def pos_widgets(self):
+        # postition all widgets in frame
         self._canvas.grid(row=0, column=1, columnspan=7, rowspan=2)
         self._label.grid(row=2, column=1, columnspan=7)
         self._prevlist.grid(row=0, column=8)
@@ -167,6 +181,7 @@ class ShubaPlay:
         self._statbar.grid(row=5, column=1, columnspan=7, sticky="n")
 
     def insert_list(self, bef, aft):
+        # for list boxes, list of before and list of after current track
         b = 1
         a = 1
         if len(bef) != 0:
@@ -183,6 +198,7 @@ class ShubaPlay:
                 a+=1
 
     def click_song(self, event):
+        # when clicking song from listbox, find index to convert to song list index
         w = event.widget
 
         if w.curselection():
@@ -197,19 +213,23 @@ class ShubaPlay:
                 self.other_play(music.play())
 
     def buff(self, val):
+        # slider func for buffer
         l = music.play()
         pygame.mixer.music.load(l)
         pygame.mixer.music.play(loops=0, start=int(self._buffer.get()))
     
     def reset_box(self):
+        # reset both lists
         self._prevlist.delete(1,'end')
         self._tracklist.delete(1, 'end')
 
     def load_play(self, l):
+        # load and play
         pygame.mixer.music.load(l)
         pygame.mixer.music.play()
 
     def other_play(self, play):
+        # play func for click song, prev track and next track
         self._buffer.config(value=0)
         l = play
         self.load_play(l)
@@ -224,7 +244,11 @@ class ShubaPlay:
         music.start = True
 
     def play(self):
+        # Main play func
         if not music.check() and music.start == False:
+            global turn
+            turn = 0
+            # first time use
             l = music.play()
             self.load_play(l)
             self.play_time()
@@ -238,6 +262,7 @@ class ShubaPlay:
             self._label['text'] = l
             music.start = True
         else:
+            # pause and play func
             music.pause()  
             if music.checkpause:
                 self._playbtn.config(image=self._play2)
@@ -245,47 +270,68 @@ class ShubaPlay:
                 self._playbtn.config(image=self._pause2)
 
     def play_time(self):
-        # grab elapsed time
-        current_time = pygame.mixer.music.get_pos() / 1000 
+        global turn
+        if turn == 20:
+            turn = 0
 
-        # convert to time
-        convert_time = time.strftime('%M:%S', time.gmtime(current_time))
+            # grab elapsed time
+            current_time = pygame.mixer.music.get_pos() / 1000 
 
-        # get song length
-        song = music._files[music._current]
+            # convert to time
+            convert_time = time.strftime('%M:%S', time.gmtime(current_time))
 
-        # load song in mutagen
-        song_muta = MP3(song)
+            # get song length
+            song = music._files[music._current]
 
-        # song length
-        global song_len
-        song_len = song_muta.info.length
+            # load song in mutagen
+            song_muta = MP3(song)
 
-        # convert to song length
-        convert_len = time.strftime('%M:%S', time.gmtime(song_len))
+            # song length
+            global song_len
+            song_len = song_muta.info.length
 
-        current_time += 1
+            # convert to song length
+            convert_len = time.strftime('%M:%S', time.gmtime(song_len))
 
-        if int(self._buffer.get()) == int(song_len):
-            self._statbar.config(text=f'{convert_len} / {convert_len}')
-            self._statbar.after(1000, self.next) 
+            current_time += 1
 
-        elif int(self._buffer.get()) == int(current_time):
-            buffer_pos = int(song_len)
-            self._buffer.config(to=buffer_pos, value=int(current_time))
+            if int(self._buffer.get()) == int(song_len):
+                # if the buffer = 100% and song is done then move to next song
+                self._statbar.config(text=f'{convert_len} / {convert_len}')
+                self._statbar.after(1000, self.next) 
 
+            elif int(self._buffer.get()) == int(current_time):
+                # if slider is moved = sync current time, then sync up buffer to current time
+                buffer_pos = int(song_len)
+                self._buffer.config(to=buffer_pos, value=int(current_time))
+
+            else:
+                buffer_pos = int(song_len)
+                self._buffer.config(to=buffer_pos, value=int(self._buffer.get()))
+
+                convert_time = time.strftime('%M:%S', time.gmtime(int(self._buffer.get())))
+
+                self._statbar.config(text=f'{convert_time} / {convert_len}')
+
+                next_time = int(self._buffer.get()) + 1
+                self._buffer.config(value=next_time)
         else:
-            buffer_pos = int(song_len)
-            self._buffer.config(to=buffer_pos, value=int(self._buffer.get()))
+            turn+=1
+        
+        # gif mover, iterate through jpgs
+        if music.check():
+            self._canvas.delete("shuba")
+            self._img = Image.open("img/shubapics/" + self._piclist[self._imgtoken])
+            self._img1 = self._img.resize((230,250),Image.ANTIALIAS) 
+            self._img2 = ImageTk.PhotoImage(self._img1)
 
-            convert_time = time.strftime('%M:%S', time.gmtime(int(self._buffer.get())))
+            self._canvas.create_image(30, 0, anchor="nw", tags="shuba", image=self._img2)
+            if self._imgtoken <= 90:
+                self._imgtoken+=1
+            else:
+                self._imgtoken = 0
 
-            self._statbar.config(text=f'{convert_time} / {convert_len}')
-
-            next_time = int(self._buffer.get()) + 1
-            self._buffer.config(value=next_time)
-
-        self._statbar.after(1000, self.play_time)  
+        self._statbar.after(50, self.play_time)  
 
     def prev(self):
         if music.re == 0 and music.check():

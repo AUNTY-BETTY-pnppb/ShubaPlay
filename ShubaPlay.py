@@ -246,7 +246,8 @@ class ShubaPlay:
     def play(self):
         # Main play func
         if not music.check() and music.start == False:
-
+            global turn 
+            turn = 0
             self._buffer.config(state="normal")
             self._buffer.bind("<ButtonRelease-1>", self.buff)
 
@@ -272,50 +273,61 @@ class ShubaPlay:
                 self._playbtn.config(image=self._pause2)
 
     def play_time(self):
-        # grab elapsed time
-        current_time = pygame.mixer.music.get_pos() / 1000 
+        global turn 
+        if turn == 20:
+            # grab elapsed time
+            current_time = pygame.mixer.music.get_pos() / 1000 
 
-        # convert to time
-        convert_time = time.strftime('%M:%S', time.gmtime(current_time))
+            # convert to time
+            convert_time = time.strftime('%M:%S', time.gmtime(current_time))
 
-        # get song length
-        song = music._files[music._current]
+            # get song length
+            song = music._files[music._current]
 
-        # load song in mutagen
-        song_muta = MP3(song)
+            # load song in mutagen
+            song_muta = MP3(song)
 
-        # song length
-        global song_len
-        song_len = song_muta.info.length
+            # song length
+            global song_len
+            song_len = song_muta.info.length
 
-        # convert to song length
-        convert_len = time.strftime('%M:%S', time.gmtime(song_len))
+            # convert to song length
+            convert_len = time.strftime('%M:%S', time.gmtime(song_len))
 
-        current_time += 1    
+            current_time += 1    
 
-        if int(self._buffer.get()) == int(song_len):
-            # if the buffer = 100% and song is done then move to next song
-            self._statbar.config(text=f'{convert_len} / {convert_len}')
-            self._statbar.after(1000, self.next) 
+            if int(self._buffer.get()) == int(song_len):
+                # if the buffer = 100% and song is done then move to next song
+                self._statbar.config(text=f'{convert_len} / {convert_len}')
+                self._statbar.after(1000, self.next) 
 
-        elif int(self._buffer.get()) == int(current_time):
-            # if slider is moved = sync current time, then sync up buffer to current time
-            buffer_pos = int(song_len)
-            self._buffer.config(to=buffer_pos, value=int(current_time))
+            elif int(self._buffer.get()) == int(current_time):
+                # if slider is moved = sync current time, then sync up buffer to current time
+                buffer_pos = int(song_len)
+                self._buffer.config(to=buffer_pos, value=int(current_time))
 
-        else:
-            buffer_pos = int(song_len)
-            self._buffer.config(to=buffer_pos, value=int(self._buffer.get()))
+            else:
+                if music.check():
+                    self._playbtn.config(image=self._pause2)
 
-            convert_time = time.strftime('%M:%S', time.gmtime(int(self._buffer.get())))
-            self._statbar.config(text=f'{convert_time} / {convert_len}')
+                    buffer_pos = int(song_len)
+                    self._buffer.config(to=buffer_pos, value=int(self._buffer.get()))
 
-            next_time = int(self._buffer.get()) + 1
-            self._buffer.config(value=next_time)
+                    convert_time = time.strftime('%M:%S', time.gmtime(int(self._buffer.get())))
+                    self._statbar.config(text=f'{convert_time} / {convert_len}')
 
-            self._playbtn.config(image=self._pause2)
-            music.checkpause = False
+                    next_time = int(self._buffer.get()) + 1
+                    self._buffer.config(value=next_time)
+                    
+                    music.checkpause = False
 
+            turn = 0
+
+        self.gif_mover()
+        turn+=1
+        self._statbar.after(50, self.play_time)  
+
+    def gif_mover(self):
         if music.check():
             # gif mover, iterate through jpgs
             self._canvas.delete("shuba")
@@ -328,8 +340,6 @@ class ShubaPlay:
                 self._imgtoken+=1
             else:
                 self._imgtoken = 0
-
-        self._statbar.after(1000, self.play_time)  
 
     def prev(self):
         if music.re == 0 and music.check():

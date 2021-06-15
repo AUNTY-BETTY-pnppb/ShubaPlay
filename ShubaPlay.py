@@ -272,52 +272,51 @@ class ShubaPlay:
                 self._playbtn.config(image=self._pause2)
 
     def play_time(self):
+        # grab elapsed time
+        current_time = pygame.mixer.music.get_pos() / 1000 
+
+        # convert to time
+        convert_time = time.strftime('%M:%S', time.gmtime(current_time))
+
+        # get song length
+        song = music._files[music._current]
+
+        # load song in mutagen
+        song_muta = MP3(song)
+
+        # song length
+        global song_len
+        song_len = song_muta.info.length
+
+        # convert to song length
+        convert_len = time.strftime('%M:%S', time.gmtime(song_len))
+
+        current_time += 1    
+
+        if int(self._buffer.get()) == int(song_len):
+            # if the buffer = 100% and song is done then move to next song
+            self._statbar.config(text=f'{convert_len} / {convert_len}')
+            self._statbar.after(1000, self.next) 
+
+        elif int(self._buffer.get()) == int(current_time):
+            # if slider is moved = sync current time, then sync up buffer to current time
+            buffer_pos = int(song_len)
+            self._buffer.config(to=buffer_pos, value=int(current_time))
+
+        else:
+            buffer_pos = int(song_len)
+            self._buffer.config(to=buffer_pos, value=int(self._buffer.get()))
+
+            convert_time = time.strftime('%M:%S', time.gmtime(int(self._buffer.get())))
+            self._statbar.config(text=f'{convert_time} / {convert_len}')
+
+            next_time = int(self._buffer.get()) + 1
+            self._buffer.config(value=next_time)
+
+            self._playbtn.config(image=self._pause2)
+            music.checkpause = False
+
         if music.check():
-            # grab elapsed time
-            current_time = pygame.mixer.music.get_pos() / 1000 
-
-            # convert to time
-            convert_time = time.strftime('%M:%S', time.gmtime(current_time))
-
-            # get song length
-            song = music._files[music._current]
-
-            # load song in mutagen
-            song_muta = MP3(song)
-
-            # song length
-            global song_len
-            song_len = song_muta.info.length
-
-            # convert to song length
-            convert_len = time.strftime('%M:%S', time.gmtime(song_len))
-            current_time += 1    
-            print(self._buffer.get(), end=" - ")
-            print(int(current_time))
-            if int(self._buffer.get()) == int(song_len):
-                # if the buffer = 100% and song is done then move to next song
-                self._statbar.config(text=f'{convert_len} / {convert_len}')
-                self._statbar.after(1000, self.next) 
-
-            elif int(self._buffer.get()) == int(current_time) or int(self._buffer.get()) == int(self._buffer.cget("to")):
-                # if slider is moved = sync current time, then sync up buffer to current time
-                buffer_pos = int(song_len)
-                self._buffer.config(to=buffer_pos, value=int(current_time))
-
-            else:
-                buffer_pos = int(song_len)
-                self._buffer.config(to=buffer_pos, value=int(self._buffer.get()))
-
-                convert_time = time.strftime('%M:%S', time.gmtime(int(self._buffer.get())))
-
-                self._statbar.config(text=f'{convert_time} / {convert_len}')
-
-                next_time = int(self._buffer.get()) + 1
-                self._buffer.config(value=next_time)
-
-                self._playbtn.config(image=self._pause2)
-                music.checkpause = False
-
             # gif mover, iterate through jpgs
             self._canvas.delete("shuba")
             self._img = Image.open("img/shubapics/" + self._piclist[self._imgtoken])

@@ -359,6 +359,39 @@ class Playlist:
         self._parent = parent
         self.frame = tk.Frame(self._parent)
 
+        self.p_menu = tk.Frame(self.frame)
+        self.p_list = tk.Frame(self.frame, bg="yellow")
+        self.p_list.grid(row=0, column=0)
+
+        self.frame.rowconfigure(0, weight=1)
+        for i in range(3):
+            self.frame.columnconfigure(i, weight=1)
+
+        self._menu = tk.Listbox(self.p_menu, height=20, width=30)
+        self._border = tk.Canvas(self.p_menu, bg="grey", height=400, width=1)
+        self._blank = tk.Label(self.p_menu, width=2)
+
+        self._border.grid(row=1, column=0, rowspan=5, sticky='w')
+        self._blank.grid(row=1, column=1)
+        self._menu.grid(row=1, column=2, rowspan=5, sticky='e')
+
+        self._canvas = tk.Canvas(self.p_list, bg="#FCFBF7", height=250, width=300).grid(row=0, column=0, sticky='nsew')
+
+        self.frame_status = False
+        self.ar_btn = tk.Button(self.frame, text="▶ Playlists", height=1, width=9, command=self.toggle_menu)
+        self.ar_btn.grid(row=0, column=2, sticky='ne')
+
+    def toggle_menu(self):
+        if self.frame_status:
+            self.p_menu.grid_forget()
+            self.frame_status = False
+            self.ar_btn.config(text="▶ Playlists", width=9)
+        else:
+            self.frame_status = True
+            self.p_menu.grid(row=0, column=2)
+            self.ar_btn.config(text="◀", width=2)
+
+
 music = musicADT()
 app = Main()
 app.root.mainloop()

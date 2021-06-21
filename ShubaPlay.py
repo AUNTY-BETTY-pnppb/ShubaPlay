@@ -6,6 +6,7 @@ import glob
 import time 
 from mutagen.mp3 import MP3
 import os
+import shelve
 
 class Main:
 
@@ -360,26 +361,24 @@ class Playlist:
         self.frame = tk.Frame(self._parent)
 
         self.p_menu = tk.Frame(self.frame)
-        self.p_list = tk.Frame(self.frame, bg="yellow")
-        self.p_list.grid(row=0, column=0)
+        self.p_list = tk.Frame(self.frame, bg="yellow")  
 
+        self.frame_status = False
         self.frame.rowconfigure(0, weight=1)
         for i in range(3):
             self.frame.columnconfigure(i, weight=1)
 
         self._menu = tk.Listbox(self.p_menu, height=20, width=30)
+        self._songlist = tk.Listbox(self.p_list, bg="#FCFBF7", height=20, width=60)
+
+        self._menu.insert(0, "All songs")
+        self.insert_songs(music.get_list())
+
         self._border = tk.Canvas(self.p_menu, bg="grey", height=400, width=1)
         self._blank = tk.Label(self.p_menu, width=2)
-
-        self._border.grid(row=1, column=0, rowspan=5, sticky='w')
-        self._blank.grid(row=1, column=1)
-        self._menu.grid(row=1, column=2, rowspan=5, sticky='e')
-
-        self._canvas = tk.Canvas(self.p_list, bg="#FCFBF7", height=250, width=300).grid(row=0, column=0, sticky='nsew')
-
-        self.frame_status = False
+        
         self.ar_btn = tk.Button(self.frame, text="▶ Playlists", height=1, width=9, command=self.toggle_menu)
-        self.ar_btn.grid(row=0, column=2, sticky='ne')
+        self.pos_widgets()
 
     def toggle_menu(self):
         if self.frame_status:
@@ -391,6 +390,39 @@ class Playlist:
             self.p_menu.grid(row=0, column=2)
             self.ar_btn.config(text="◀", width=2)
 
+    def pos_widgets(self):
+        self.p_list.grid(row=0, column=0)
+        self._songlist.grid(row=0, column=0, sticky='nsew')
+
+        self.ar_btn.grid(row=0, column=2, sticky='ne')
+
+        self._border.grid(row=1, column=0, rowspan=5, sticky='w')
+        self._blank.grid(row=1, column=1)
+        self._menu.grid(row=1, column=2, rowspan=5, sticky='e')
+
+    def insert_songs(self, songs):
+        # for list boxes, list of before and list of after current track
+        b = 1
+
+        for s in songs:
+            self._songlist.insert(b, s)
+            b+=1
+
+
+class Bookshelf:
+    def __init__(self):
+        self.name = "Bookshelf"
+
+    def access_setting(self, name):
+        st = shelve.open(self.name)
+        temp = st[name]
+        st.close()
+        return temp
+
+    def save_setting(self, name, value):
+        st = shelve.open(self.name, writeback=True)
+        st[name] = value
+        st.close()
 
 music = musicADT()
 app = Main()

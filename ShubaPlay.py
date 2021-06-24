@@ -184,18 +184,32 @@ class ShubaPlay:
     def insert_list(self, bef, aft):
         # for list boxes, list of before and list of after current track
         b = 1
+        rgb = 0
         a = 1
+
         if len(bef) != 0:
             if len(bef) > 4:
                 bef = bef[-4:]
 
             for song in bef:
                 self._prevlist.insert(b, song)
+                if rgb == 0:
+                    self._prevlist.itemconfig(b, {'bg':'#fff59a'})
+                    rgb+=1
+                else:
+                    rgb = 0
                 b+=1
+        
+        rgb = 0
 
         if len(aft) != 0:
             for song in aft:
                 self._tracklist.insert(a, song)
+                if rgb == 0:
+                    self._tracklist.itemconfig(a, {'bg':'#fff59a'})
+                    rgb+=1
+                else:
+                    rgb = 0
                 a+=1
 
     def click_song(self, event):
@@ -343,39 +357,50 @@ class ShubaPlay:
                 self._imgtoken = 0
 
     def prev(self):
-        if music.re == 0 and music.check():
-            self._buffer.config(value=0)
-            music.rewind()
-            music.re = 1
-        else:
-            self.other_play(music.prev_track())
-            music.re = 0
+        if music.start == True:
+            if music.re == 0 and music.check():
+                self._buffer.config(value=0)
+                music.rewind()
+                music.re = 1
+            else:
+                self.other_play(music.prev_track())
+                music.re = 0
 
     def next(self):
-        self.other_play(music.next_track())
+        if music.start == True:
+            self.other_play(music.next_track())
 
 class Playlist:
 
     def __init__(self, parent):
+        # frames
         self._parent = parent
         self.frame = tk.Frame(self._parent)
 
         self.p_menu = tk.Frame(self.frame)
         self.p_list = tk.Frame(self.frame, bg="yellow")  
 
+        # status checks
+        self._curr_list = "All songs"
         self.frame_status = False
         self.frame.rowconfigure(0, weight=1)
         for i in range(3):
             self.frame.columnconfigure(i, weight=1)
 
+        #listboxes
         self._menu = tk.Listbox(self.p_menu, height=20, width=30)
-        self._songlist = tk.Listbox(self.p_list, bg="#FCFBF7", height=20, width=60)
+        self._songlist = tk.Listbox(self.p_list, bg="#FCFBF7", height=20, width=40)
+
+        self._menu.bind("<<ListboxSelect>>", self.click_playlist)
 
         self._menu.insert(0, "All songs")
         self.insert_songs(music.get_list())
 
+        # other widgets
         self._border = tk.Canvas(self.p_menu, bg="grey", height=400, width=1)
         self._blank = tk.Label(self.p_menu, width=2)
+        self.add_plist_btn = tk.Button(self.p_menu, text="+", height=1, width=1)
+        self._plist_entry = tk.Entry(self.p_menu)
         
         self.ar_btn = tk.Button(self.frame, text="▶ Playlists", height=1, width=9, command=self.toggle_menu)
         self.pos_widgets()
@@ -396,18 +421,43 @@ class Playlist:
 
         self.ar_btn.grid(row=0, column=2, sticky='ne')
 
-        self._border.grid(row=1, column=0, rowspan=5, sticky='w')
-        self._blank.grid(row=1, column=1)
-        self._menu.grid(row=1, column=2, rowspan=5, sticky='e')
+        self._border.grid(row=0, column=0, rowspan=7, sticky='w')
+        self._blank.grid(row=2, column=2)
+
+        self._plist_entry.grid(row=0, column=3, sticky='sw')
+        self.add_plist_btn.grid(row=0, column=4, sticky='sw')
+
+        self._menu.grid(row=2, column=3, columnspan=2, rowspan=5, sticky='e')
 
     def insert_songs(self, songs):
         # for list boxes, list of before and list of after current track
-        b = 1
+        b = 0
 
         for s in songs:
-            self._songlist.insert(b, s)
+            song_muta = MP3(s + ".mp3")
+            song_len = song_muta.info.length
+            convert_len = time.strftime('%M:%S', time.gmtime(song_len))
+
+            self._songlist.insert(b, convert_len + "             " + s)
+
+            if b % 2 != 0:
+                self._songlist.itemconfig(b, {'bg':'#fff59a'})
             b+=1
 
+    def click_playlist(self, event):
+        # when clicking playlist from listbox
+        w = event.widget
+
+        if w.curselection():
+            index = int(w.curselection()[0])
+            value = w.get(index)
+
+
+            if value != self._curr_list:
+                self._songlist.delete(0,'end')
+                
+                if index == 0:
+                    self.insert_songs(music.get_list())
 
 class Bookshelf:
     def __init__(self):
@@ -427,3 +477,4 @@ class Bookshelf:
 music = musicADT()
 app = Main()
 app.root.mainloop()
+    

@@ -382,6 +382,7 @@ class Playlist:
 
         # status checks
         self._curr_list = "All songs"
+
         self.frame_status = False
         self.frame.rowconfigure(0, weight=1)
         for i in range(3):
@@ -394,12 +395,20 @@ class Playlist:
         self._menu.bind("<<ListboxSelect>>", self.click_playlist)
 
         self._menu.insert(0, "All songs")
+
+        shelf = bookshelf.get_keys()
+        bookshelf.close()
+        for key in shelf:
+            self._menu.insert(self._menu.size(), key)
+
+        self._allplists = self._menu.get(0, tk.END)
+
         self.insert_songs(music.get_list())
 
         # other widgets
         self._border = tk.Canvas(self.p_menu, bg="grey", height=400, width=1)
         self._blank = tk.Label(self.p_menu, width=2)
-        self.add_plist_btn = tk.Button(self.p_menu, text="+", height=1, width=1)
+        self.add_plist_btn = tk.Button(self.p_menu, text="add +", command=self.create_playlist)
         self._plist_entry = tk.Entry(self.p_menu)
         
         self.ar_btn = tk.Button(self.frame, text="▶ Playlists", height=1, width=9, command=self.toggle_menu)
@@ -421,13 +430,13 @@ class Playlist:
 
         self.ar_btn.grid(row=0, column=2, sticky='ne')
 
-        self._border.grid(row=0, column=0, rowspan=7, sticky='w')
-        self._blank.grid(row=2, column=2)
+        self._border.grid(row=0, column=0, rowspan=8, sticky='w')
+        self._blank.grid(row=3, column=2)
 
-        self._plist_entry.grid(row=0, column=3, sticky='sw')
-        self.add_plist_btn.grid(row=0, column=4, sticky='sw')
+        self._plist_entry.grid(row=1, column=3)
+        self.add_plist_btn.grid(row=1, column=4)
 
-        self._menu.grid(row=2, column=3, columnspan=2, rowspan=5, sticky='e')
+        self._menu.grid(row=3, column=3, columnspan=2, rowspan=5, sticky='e')
 
     def insert_songs(self, songs):
         # for list boxes, list of before and list of after current track
@@ -452,29 +461,59 @@ class Playlist:
             index = int(w.curselection()[0])
             value = w.get(index)
 
-
             if value != self._curr_list:
                 self._songlist.delete(0,'end')
                 
                 if index == 0:
                     self.insert_songs(music.get_list())
+                else:
+                    plist = bookshelf.access_playlist(value)
+                    self.insert_songs(plist)
+                self._curr_list = value
+
+    def create_playlist(self):
+        input = self._plist_entry.get()
+
+        if input:
+            if input not in self._allplists:
+                self._menu.insert(self._menu.size(), input)
+                bookshelf.save_playlist(input, [])
+                self.insert_songs(bookshelf.access_playlist(input))
+                print("Created new playlist: " + input)
+            else:
+                print("Name already taken")
 
 class Bookshelf:
     def __init__(self):
         self.name = "Bookshelf"
 
-    def access_setting(self, name):
+    def get_keys(self):
+        st = shelve.open(self.name)
+        return st.keys()
+    
+    def close(self):
+        st = shelve.open(self.name)
+        st.close()
+
+    def access_playlist(self, name):
         st = shelve.open(self.name)
         temp = st[name]
         st.close()
         return temp
 
-    def save_setting(self, name, value):
+    def save_playlist(self, name, value):
+        # value is a list, playlist
         st = shelve.open(self.name, writeback=True)
         st[name] = value
         st.close()
+    
+    def delete_playlist(self):
+        st = shelve.open(self.name)
+        for key in self.get_keys():
+            del st[key]
+        st.close()
 
+bookshelf = Bookshelf()
 music = musicADT()
 app = Main()
 app.root.mainloop()
-    

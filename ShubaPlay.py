@@ -393,6 +393,8 @@ class Playlist:
         self._songlist = tk.Listbox(self.p_list, height=20, width=40)
         self._picklist = tk.Listbox(self.p_list, height=20, width=40)
 
+        self._picklist.bind('<<ListboxSelect>>', self.add_song)
+
         self._menu.bind("<<ListboxSelect>>", self.click_playlist)
 
         self._menu.insert(0, "All songs")
@@ -413,7 +415,7 @@ class Playlist:
         self._title = tk.Label(self.p_list, text="All Songs")
         self._picktitle = tk.Label(self.p_list, text="All Songs")
         self._blank1 = tk.Label(self.p_list, height=2, width=4)
-        self._savebtn = tk.Button(self.p_list, text="Save Changes")
+        self._savebtn = tk.Button(self.p_list, text="Save Changes", command=self.save_playlist)
 
         self._border = tk.Canvas(self.p_menu, bg="grey", height=400, width=1)
         self._blank = tk.Label(self.p_menu, width=2)
@@ -487,6 +489,7 @@ class Playlist:
                     plist = bookshelf.access_playlist(value)
                     self.insert_songs(plist, self._songlist)
                 self._curr_list = value
+                self._title.config(text=self._curr_list)
 
     def create_playlist(self):
         input = self._plist_entry.get()
@@ -503,9 +506,11 @@ class Playlist:
                 self._songlist.delete(0,'end')
 
                 self._title.config(text=input)
+                self._curr_list = input
                 print("Created new playlist: " + input)
 
                 self.change_playlist()
+                self._songlist.bind('<Double-1>', self.remove_song)
             else:
                 print("Name already taken")
 
@@ -518,6 +523,53 @@ class Playlist:
         self.toggle_menu()
         self.insert_songs(music.get_list(), self._picklist)
         self.ar_btn.grid_forget()
+
+    def save_playlist(self):
+        self._blank1.grid_forget()
+        self._picktitle.grid_forget()
+        self._savebtn.grid_forget()
+        self._picklist.grid_forget()
+
+        self._picklist.delete(0, 'end')
+        self._songlist.delete(0, 'end')
+
+        self.ar_btn.grid(row=0, column=2, sticky='ne')
+
+        self._songlist.unbind('<Double-1>')
+
+        songs = bookshelf.access_playlist(self._curr_list)
+
+        self.insert_songs(songs, self._songlist)
+
+    
+    def add_song(self, event):
+        # when clicking playlist from listbox
+        w = event.widget
+
+        if w.curselection():
+            index = int(w.curselection()[0])
+            value = w.get(index)
+            current_plist = bookshelf.access_playlist(self._curr_list) 
+
+            if value not in current_plist:
+                value = value[18:]
+                current_plist.append(value)
+                bookshelf.save_playlist(self._curr_list, current_plist)
+                self._songlist.insert(self._songlist.size(), value)
+
+    def remove_song(self, event):
+        # when clicking playlist from listbox
+        w = event.widget
+
+        if w.curselection():
+            index = int(w.curselection()[0])
+            value = w.get(index)
+            value = value[18:]
+            current_plist = bookshelf.access_playlist(self._curr_list) 
+
+            current_plist.remove(value)
+            bookshelf.save_playlist(self._curr_list, current_plist)
+            self._songlist.delete(index)
 
 
 class Bookshelf:

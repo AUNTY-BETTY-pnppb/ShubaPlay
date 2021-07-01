@@ -378,7 +378,7 @@ class Playlist:
         self.frame = tk.Frame(self._parent)
 
         self.p_menu = tk.Frame(self.frame)
-        self.p_list = tk.Frame(self.frame, bg="yellow")  
+        self.p_list = tk.Frame(self.frame)  
 
         # status checks
         self._curr_list = "All songs"
@@ -390,7 +390,8 @@ class Playlist:
 
         #listboxes
         self._menu = tk.Listbox(self.p_menu, height=20, width=30)
-        self._songlist = tk.Listbox(self.p_list, bg="#FCFBF7", height=20, width=40)
+        self._songlist = tk.Listbox(self.p_list, height=20, width=40)
+        self._picklist = tk.Listbox(self.p_list, height=20, width=40)
 
         self._menu.bind("<<ListboxSelect>>", self.click_playlist)
 
@@ -398,21 +399,32 @@ class Playlist:
 
         shelf = bookshelf.get_keys()
         bookshelf.close()
+
         for key in shelf:
             self._menu.insert(self._menu.size(), key)
 
         self._allplists = self._menu.get(0, tk.END)
 
-        self.insert_songs(music.get_list())
+        self.insert_songs(music.get_list(), self._songlist)
 
         # other widgets
+        self.ar_btn = tk.Button(self.frame, text="▶ Playlists", height=1, width=9, command=self.toggle_menu)
+
+        self._title = tk.Label(self.p_list, text="All Songs")
+        self._picktitle = tk.Label(self.p_list, text="All Songs")
+        self._blank1 = tk.Label(self.p_list, height=2, width=4)
+        self._savebtn = tk.Button(self.p_list, text="Save Changes")
+
         self._border = tk.Canvas(self.p_menu, bg="grey", height=400, width=1)
         self._blank = tk.Label(self.p_menu, width=2)
         self.add_plist_btn = tk.Button(self.p_menu, text="add +", command=self.create_playlist)
         self._plist_entry = tk.Entry(self.p_menu)
         
-        self.ar_btn = tk.Button(self.frame, text="▶ Playlists", height=1, width=9, command=self.toggle_menu)
         self.pos_widgets()
+
+        ############################
+        bookshelf.delete_playlist()#
+        ############################
 
     def toggle_menu(self):
         if self.frame_status:
@@ -425,9 +437,14 @@ class Playlist:
             self.ar_btn.config(text="◀", width=2)
 
     def pos_widgets(self):
+        # listbox placements
         self.p_list.grid(row=0, column=0)
-        self._songlist.grid(row=0, column=0, sticky='nsew')
+        self._songlist.grid(row=1, column=0, sticky='nsew')
 
+        # labels
+        self._title.grid(row=0, column=0)
+
+        # buttons and other widgets
         self.ar_btn.grid(row=0, column=2, sticky='ne')
 
         self._border.grid(row=0, column=0, rowspan=8, sticky='w')
@@ -438,7 +455,7 @@ class Playlist:
 
         self._menu.grid(row=3, column=3, columnspan=2, rowspan=5, sticky='e')
 
-    def insert_songs(self, songs):
+    def insert_songs(self, songs, lst):
         # for list boxes, list of before and list of after current track
         b = 0
 
@@ -447,10 +464,10 @@ class Playlist:
             song_len = song_muta.info.length
             convert_len = time.strftime('%M:%S', time.gmtime(song_len))
 
-            self._songlist.insert(b, convert_len + "             " + s)
+            lst.insert(b, convert_len + "             " + s)
 
             if b % 2 != 0:
-                self._songlist.itemconfig(b, {'bg':'#fff59a'})
+                lst.itemconfig(b, {'bg':'#fff59a'})
             b+=1
 
     def click_playlist(self, event):
@@ -465,10 +482,10 @@ class Playlist:
                 self._songlist.delete(0,'end')
                 
                 if index == 0:
-                    self.insert_songs(music.get_list())
+                    self.insert_songs(music.get_list(), self._songlist)
                 else:
                     plist = bookshelf.access_playlist(value)
-                    self.insert_songs(plist)
+                    self.insert_songs(plist, self._songlist)
                 self._curr_list = value
 
     def create_playlist(self):
@@ -476,14 +493,35 @@ class Playlist:
 
         if input:
             if input not in self._allplists:
+                # add playlist name into the menu
                 self._menu.insert(self._menu.size(), input)
+
+                # save song into the shelf
                 bookshelf.save_playlist(input, [])
-                self.insert_songs(bookshelf.access_playlist(input))
+
+                # blank the songlist
+                self._songlist.delete(0,'end')
+
+                self._title.config(text=input)
                 print("Created new playlist: " + input)
+
+                self.change_playlist()
             else:
                 print("Name already taken")
 
+    def change_playlist(self):
+        self._picktitle.grid(row=0, column=2)
+        self._picklist.grid(row=1, column=2, sticky='nsew')
+        self._blank1.grid(row=3)
+        self._savebtn.grid(row=4, column=1, sticky='ne')
+
+        self.toggle_menu()
+        self.insert_songs(music.get_list(), self._picklist)
+        self.ar_btn.grid_forget()
+
+
 class Bookshelf:
+    
     def __init__(self):
         self.name = "Bookshelf"
 

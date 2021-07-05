@@ -28,14 +28,16 @@ class Main:
 class musicADT:
     def __init__(self):
         types = ('./**/*.wav', './**/*.mp3')
-        self._files = []
-        self._current = 0
+        self.files = []
+        self.all = []
+        self.current = 0
         self.checkpause = False
         self.start = False
         self.re = 0
 
         for files in types:
-            self._files.extend(glob.glob(files, recursive=True))
+            self.files.extend(glob.glob(files, recursive=True))
+            self.all.extend(glob.glob(files, recursive=True))
 
         pygame.init()
         # edit quality
@@ -45,8 +47,8 @@ class musicADT:
     def play(self):
         if self.check():
             pygame.mixer.music.stop()
-        print("Playing - " + os.path.basename(self._files[self._current])[:-4])
-        return os.path.basename(self._files[self._current])
+        print("Playing - " + os.path.basename(self.files[self.current])[:-4])
+        return os.path.basename(self.files[self.current])
 
     def pause(self):
         if not self.checkpause:
@@ -67,37 +69,37 @@ class musicADT:
             return False
 
     def next_track(self):
-        if self._current == len(self._files)-1:
-            self._current = 0
+        if self.current == len(self.files)-1:
+            self.current = 0
         else:
-            self._current += 1
+            self.current += 1
         return self.play()
 
     def prev_track(self):
-        if self._current == 0:
-            self._current = len(self._files)-1
+        if self.current == 0:
+            self.current = len(self.files)-1
         else:
-            self._current -=1
+            self.current -=1
         return self.play()
 
     def rewind(self):
         pygame.mixer.music.rewind()
     
     def get_current(self):
-        return self._files[self._current]
+        return self.files[self.current]
 
     def current_index(self):
-        return self._current
+        return self.current
 
     def change_current(self, curr):
-        self._current = curr
+        self.current = curr
 
     def printList(self):
-        for file in self._files:
+        for file in self.files:
             print(os.path.basename(file)[:-4])
 
     def list_all(self):
-        bef, aft = self._files[:self._current], self._files[self._current+1:] 
+        bef, aft = self.files[:self.current], self.files[self.current+1:] 
         for b in bef:
             bef[bef.index(b)] = os.path.basename(b)[:-4]
         for a in aft:
@@ -105,11 +107,17 @@ class musicADT:
         return bef, aft
 
     def len_list(self):
-        return len(self._files)
+        return len(self.files)
 
     def get_list(self):
         lis = []
-        for file in self._files:
+        for file in self.files:
+            lis.append(os.path.basename(file)[:-4])
+        return lis
+    
+    def get_all(self):
+        lis = []
+        for file in self.all:
             lis.append(os.path.basename(file)[:-4])
         return lis
 
@@ -297,7 +305,7 @@ class ShubaPlay:
             convert_time = time.strftime('%M:%S', time.gmtime(current_time))
 
             # get song length
-            song = music._files[music._current]
+            song = music.files[music.current]
 
             # load song in mutagen
             song_muta = MP3(song)
@@ -393,8 +401,8 @@ class Playlist:
         self._songlist = tk.Listbox(self.p_list, height=20, width=40)
         self._picklist = tk.Listbox(self.p_list, height=20, width=40)
 
+        self._songlist.bind('<<ListboxSelect>>', self.click_song)
         self._picklist.bind('<<ListboxSelect>>', self.add_song)
-
         self._menu.bind("<<ListboxSelect>>", self.click_playlist)
 
         self._menu.insert(0, "All songs")
@@ -424,9 +432,9 @@ class Playlist:
         
         self.pos_widgets()
 
-        ############################
+        #############################
         bookshelf.delete_playlist()#
-        ############################
+        #############################
 
     def toggle_menu(self):
         if self.frame_status:
@@ -460,9 +468,12 @@ class Playlist:
     def insert_songs(self, songs, lst):
         # for list boxes, list of before and list of after current track
         b = 0
-
+        print("HEY ---")
+        print(songs)
         for s in songs:
-            song_muta = MP3(s + ".mp3")
+            if s[-4:] != ".mp3":
+                s = s + ".mp3"
+            song_muta = MP3(s)
             song_len = song_muta.info.length
             convert_len = time.strftime('%M:%S', time.gmtime(song_len))
 
@@ -482,9 +493,10 @@ class Playlist:
 
             if value != self._curr_list:
                 self._songlist.delete(0,'end')
+                print("the index is " + str(index))
                 
                 if index == 0:
-                    self.insert_songs(music.get_list(), self._songlist)
+                    self.insert_songs(music.get_all(), self._songlist)
                 else:
                     plist = bookshelf.access_playlist(value)
                     self.insert_songs(plist, self._songlist)
@@ -510,6 +522,7 @@ class Playlist:
                 print("Created new playlist: " + input)
 
                 self.change_playlist()
+                self._songlist.unbind('<<ListboxSelect>>')
                 self._songlist.bind('<Double-1>', self.remove_song)
             else:
                 print("Name already taken")
@@ -536,10 +549,27 @@ class Playlist:
         self.ar_btn.grid(row=0, column=2, sticky='ne')
 
         self._songlist.unbind('<Double-1>')
+        self._songlist.bind('<<ListboxSelect>>', self.click_song)
 
         songs = bookshelf.access_playlist(self._curr_list)
 
         self.insert_songs(songs, self._songlist)
+
+    def click_song(self, event):
+        # when clicking song from listbox, find index to convert to song list index
+        w = event.widget
+
+        if w.curselection():
+            index = int(w.curselection()[0])
+
+            if self._curr_list != "All songs":
+                music.files = bookshelf.access_playlist(self._curr_list)
+            else:
+                music.files = music.all
+                
+            music.change_current(index)
+
+            app.shubaplay.other_play(music.play())
 
     
     def add_song(self, event):
@@ -553,6 +583,7 @@ class Playlist:
 
             if value not in current_plist:
                 value = value[18:]
+                print(value)
                 current_plist.append(value)
                 bookshelf.save_playlist(self._curr_list, current_plist)
                 self._songlist.insert(self._songlist.size(), value)

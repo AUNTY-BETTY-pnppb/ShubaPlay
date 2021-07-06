@@ -504,12 +504,11 @@ class Playlist:
                 self._title.config(text=self._curr_list)
 
     def create_playlist(self):
+        global input
         input = self._plist_entry.get()
 
         if input:
             if input not in self._allplists:
-                # add playlist name into the menu
-                self._menu.insert(self._menu.size(), input)
 
                 # save song into the shelf
                 bookshelf.save_playlist(input, [])
@@ -550,6 +549,10 @@ class Playlist:
 
         self._songlist.unbind('<Double-1>')
         self._songlist.bind('<<ListboxSelect>>', self.click_song)
+
+        global input 
+        # add playlist name into the menu
+        self._menu.insert(self._menu.size(), input)
 
         songs = bookshelf.access_playlist(self._curr_list)
 
@@ -595,7 +598,7 @@ class Playlist:
         if w.curselection():
             index = int(w.curselection()[0])
             value = w.get(index)
-            value = value[18:]
+            print(value)
             current_plist = bookshelf.access_playlist(self._curr_list) 
 
             current_plist.remove(value)

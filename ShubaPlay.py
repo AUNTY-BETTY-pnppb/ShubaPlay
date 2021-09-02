@@ -433,7 +433,7 @@ class Playlist:
         self.pos_widgets()
 
         #############################
-        bookshelf.delete_playlist()#
+        #bookshelf.delete_playlist()#
         #############################
 
     def toggle_menu(self):
